@@ -4,6 +4,8 @@
  * Email <gliyechen@hotmail.com>
  */
 
+// recursive
+
 class Solution {
 public:
     vector<vector<int>> permute(vector<int>& nums) {
