@@ -1,37 +1,110 @@
-/* Sudoku Solver
- * 
- * [Hard] [AC:37.8% 136.3K of 360.4K] [filetype:cpp]
- * 
- * Write a program to solve a Sudoku puzzle by filling the empty cells.
- * 
- * A sudoku solution must satisfy all of the following rules:
- * 
- * Each of the digits 1-9 must occur exactly once in each row.
- * 
- * Each of the digits 1-9 must occur exactly once in each column.
- * 
- * Each of the the digits 1-9 must occur exactly once in each of the 9 3x3
- * sub-boxes of the grid.
- * 
- * Empty cells are indicated by the character '.'.
- * 
- * A sudoku puzzle...
- * 
- * ...and its solution numbers marked in red.
- * 
- * Note:
- * 
- * The given board contain only digits 1-9 and the character '.'.
- * 
- * You may assume that the given Sudoku puzzle will have a single unique
- * solution.
- * 
- * The given board size is always 9x9.
- * 
- * [End of Description] */
+// backtracking
+
 class Solution {
+private:
+    struct cell {
+        uint8_t value;
+        uint8_t numPossibilities;
+        bitset<10> constraints;
+        cell(): value(0), numPossibilities(9), constraints() {};
+    };
+
+    array<array<cell, 9>, 9> cells;
+
+    bool set(int i, int j, int value) {
+        cell& c = cells[i][j];
+        if (c.value == value) return true;
+        if (c.constraints[value]) return false;
+
+        // set all bits to 1  '1111111111' = 0x3FE
+        c.constraints = bitset<10>(0x3FE);
+        c.constraints.reset(value);
+        c.value = value;
+        c.numPossibilities = 1;
+
+        for (int k = 0; k < 9; k++) {
+            if (i != k && !updateConstraints(k, j, value)) return false;
+            if (j != k && !updateConstraints(i, k, value)) return false;
+
+            // 3x3 box
+            int ix = (i / 3) * 3 + k / 3;
+            int jx = (j / 3) * 3 + k % 3;
+            if (ix != i && jx != j && !updateConstraints(ix, jx, value)) return false;
+        }
+        return true;
+    }
+
+    bool updateConstraints(int i, int j, int excludedValue) {
+        cell& c = cells[i][j];
+        if (c.constraints[excludedValue]) return true;
+        if (c.value == excludedValue) return false;
+        c.constraints.set(excludedValue);
+        if (--c.numPossibilities > 1) return true;
+        for (int v = 1; v <= 9; v++) {
+            if (!c.constraints[v]) {
+                return set(i, j, v);
+            }
+        }
+        assert(false);
+    }
+
+    // backtracking state - list of empty cells
+    vector<pair<int, int>> bt;
+
+    // sort values
+    bool findValuesForEmptyCells() {
+        bt.clear();
+        for (int i = 0; i < 9; i++) {
+            for (int j = 0; j < 9; j++) {
+                if (!cells[i][j].value) bt.push_back(make_pair(i, j));
+            }
+        }
+
+        sort(bt.begin(), bt.end(), [this](const pair<int, int>&a, const pair<int, int>&b) {
+            return cells[a.first][a.second].numPossibilities < cells[b.first][b.second].numPossibilities;
+        });
+        return backtrack(0);
+    }
+
+    bool backtrack(int k) {
+        if (k >= bt.size()) return true;
+        int i = bt[k].first;
+        int j = bt[k].second;
+        if (cells[i][j].value) return backtrack(k + 1);
+        auto constraints = cells[i][j].constraints;
+        array<array<cell, 9>, 9> snapshot(cells);
+        for (int v = 1; v <= 9; v++) {
+            if (!constraints[v]) {
+                if (set(i, j, v)) {
+                    if (backtrack(k + 1)) return true;
+                }
+                cells = snapshot;
+            }
+        }
+        return false;
+    }
+
 public:
     void solveSudoku(vector<vector<char>>& board) {
-        
+        // empty(re-init) cells
+        cells = array<array<cell, 9>, 9> ();
+
+        // if it is a valid board
+        for (int i = 0; i < 9; i++) {
+            for (int j = 0; j < 9; j++) {
+                if (board[i][j] != '.' && !set(i, j, board[i][j] - '0')) {
+                    return;
+                }
+            }
+        }
+
+        if (!findValuesForEmptyCells()) return;
+
+        for (int i = 0; i < 9; i++) {
+            for (int j = 0; j < 9; j++) {
+                if (cells[i][j].value)
+                    board[i][j] = '0' + cells[i][j].value;
+            }
+        }
     }
 };
