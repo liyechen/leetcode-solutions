@@ -12,7 +12,22 @@ public:
         
         int cols = matrix[0].size();
         
-        // binary search
-        
+        int left = 0, right = rows * cols - 1;
+        int middle;
+        while(right >= left) {
+            middle = (right + left) / 2;
+            int col = middle % cols;
+            int row = (middle - col) / cols;
+            
+            int val = matrix[row][col];
+            if (target == val) return true;
+            if (target > val) {
+                left = middle + 1;
+            } else {
+                right = middle - 1;
+            }
+            
+        }
+        return false;
     }
 };
